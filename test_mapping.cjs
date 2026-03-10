@@ -1,16 +1,7 @@
 const sql = require('mssql');
+const { getSqlConfig } = require('./dbConfig.cjs');
 
-const config = {
-    user: 'bcp',
-    password: 'comidas1',
-    server: '172.31.13.24',
-    database: 'POSGC_DNS01',
-    port: 1433,
-    options: {
-        encrypt: false,
-        trustServerCertificate: true
-    }
-};
+const config = getSqlConfig({ validateRequired: true });
 
 async function test() {
     try {

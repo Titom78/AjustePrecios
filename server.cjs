@@ -1,39 +1,20 @@
-require('dotenv').config();
 const express = require('express');
 const sql = require('mssql');
 const cors = require('cors');
+const { getSqlConfig } = require('./dbConfig.cjs');
 
 const app = express();
 const corsOrigin = process.env.CORS_ORIGIN ? String(process.env.CORS_ORIGIN).trim() : '';
 app.use(cors(corsOrigin ? { origin: corsOrigin } : undefined));
 app.use(express.json());
 
-const requiredEnvVars = ['DB_USER', 'DB_PASSWORD', 'DB_SERVER', 'DB_NAME'];
-const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
-
-if (missingEnvVars.length > 0) {
-    console.error(`Faltan variables de entorno obligatorias: ${missingEnvVars.join(', ')}`);
+let config;
+try {
+    config = getSqlConfig({ validateRequired: true });
+} catch (err) {
+    console.error(err.message);
     process.exit(1);
 }
-
-const toBool = (value, fallback = false) => {
-    if (value === undefined || value === null || value === '') return fallback;
-    return String(value).toLowerCase() === 'true';
-};
-
-const config = {
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    server: process.env.DB_SERVER,
-    database: process.env.DB_NAME,
-    port: Number.parseInt(process.env.DB_PORT || '1433', 10),
-    options: {
-        encrypt: toBool(process.env.DB_ENCRYPT, false),
-        trustServerCertificate: toBool(process.env.DB_TRUST_SERVER_CERTIFICATE, true),
-        enableArithAbort: true,
-        connectTimeout: Number.parseInt(process.env.DB_CONNECT_TIMEOUT || '30000', 10)
-    }
-};
 
 app.get('/api/promos', async (req, res) => {
     try {

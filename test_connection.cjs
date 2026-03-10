@@ -1,7 +1,10 @@
 const net = require('net');
+const { getDbTarget, assertDbEnvVars } = require('./dbConfig.cjs');
+
+assertDbEnvVars();
+
 const client = new net.Socket();
-const port = 1433;
-const host = '172.31.13.24';
+const { host, port } = getDbTarget();
 
 console.log(`Intentando conectar a ${host}:${port}...`);
 
