@@ -16,7 +16,11 @@ try {
     process.exit(1);
 }
 
-app.get('/api/promos', async (req, res) => {
+app.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'ok', service: 'price-adjuster-api' });
+});
+
+app.get('/api/promos', async (req, res, next) => {
     try {
         let pool = await sql.connect(config);
         
@@ -75,12 +79,11 @@ app.get('/api/promos', async (req, res) => {
         console.log(`Enviando ${finalData.length} registros. D3037 p1: ${finalData.find(x=>x.cod==='D3037')?.p1}`);
         res.json(finalData);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.get('/api/modificadores/:cod', async (req, res) => {
+app.get('/api/modificadores/:cod', async (req, res, next) => {
     const cod = String(req.params.cod || '').trim();
 
     if (!cod) {
@@ -117,12 +120,11 @@ app.get('/api/modificadores/:cod', async (req, res) => {
 
         res.json(result.recordset);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.get('/api/precio-canales/:cod', async (req, res) => {
+app.get('/api/precio-canales/:cod', async (req, res, next) => {
     const cod = String(req.params.cod || '').trim();
 
     if (!cod) {
@@ -162,12 +164,11 @@ app.get('/api/precio-canales/:cod', async (req, res) => {
 
         res.json(result.recordset);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-app.get('/api/catalogos/precio-canales', async (_req, res) => {
+app.get('/api/catalogos/precio-canales', async (_req, res, next) => {
     try {
         const pool = await sql.connect(config);
 
@@ -192,9 +193,17 @@ app.get('/api/catalogos/precio-canales', async (_req, res) => {
             productos: productosReq.recordset,
         });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
+        next(err);
     }
+});
+
+app.use((err, _req, res, _next) => {
+    const message = err instanceof Error ? err.message : 'Error interno del servidor';
+    console.error('[API ERROR]', err);
+    if (res.headersSent) {
+        return;
+    }
+    res.status(500).json({ error: message });
 });
 
 const PORT = Number.parseInt(process.env.PORT || '3001', 10);

@@ -6,9 +6,48 @@ type SortDirection = 'asc' | 'desc';
 type EditedPriceFields = { p1: string; p2: string; p3: string; est: string };
 type ModifierEditFields = { costoExtra: string; est: string };
 type PrecioCanalEditFields = { precioVenta: string; costoExtra: string };
+type PromoRow = {
+  cod?: string;
+  tit?: string;
+  des?: string;
+  est?: string;
+  per?: string;
+  cls?: string;
+  p1?: number | string | null;
+  p2?: number | string | null;
+  p3?: number | string | null;
+  [key: string]: unknown;
+};
+type ModificadorOption = {
+  codigo_tipo_modificador?: string | number;
+  descripcion_tipo_modificador?: string;
+};
+type ProductoOption = {
+  CODIGO_PRODUCTO?: string;
+  DESCRIPCION_CORTA_PRODUCTO?: string;
+};
+type ExistingModifierRow = {
+  __isNew?: false;
+  __clientId?: string;
+  cod_promo?: string;
+  tipo_modificador?: string | number;
+  descripcion_tipo_modificador?: string;
+  Linea?: string | number;
+  codigo_producto?: string;
+  CodProd_Equiv?: string;
+  desc_modi?: string;
+  costo_extra?: string | number;
+  esdefault?: string | number;
+  EsDefault?: string | number;
+  esDefault?: string | number;
+  estado_modificador?: string;
+  Aplica_Mitades?: string;
+  MultipleCanal?: string;
+};
 type AddedModifierRow = {
   __isNew: true;
   __clientId: string;
+  cod_promo?: string;
   tipo_modificador: string;
   descripcion_tipo_modificador: string;
   Linea: string;
@@ -17,9 +56,28 @@ type AddedModifierRow = {
   desc_modi: string;
   costo_extra: string;
   esdefault: string;
+  EsDefault?: string;
+  esDefault?: string;
   estado_modificador: string;
   Aplica_Mitades: string;
   MultipleCanal: string;
+};
+type ModifierRow = ExistingModifierRow | AddedModifierRow;
+type ExistingPrecioCanalRow = {
+  __isNew?: false;
+  __clientId?: string;
+  clase?: string;
+  codigo_clase_producto?: string;
+  cod_promo?: string;
+  titulo_promo?: string;
+  nivel?: string | number;
+  multiple_tipo_codigo?: string;
+  descripcion_tipo_modificador?: string;
+  descripcion_corta_producto?: string;
+  codigo_producto?: string;
+  precio_venta?: string | number;
+  costo_extra?: string | number;
+  mutiple_canal?: string;
 };
 type AddedPrecioCanalRow = {
   __isNew: true;
@@ -37,6 +95,7 @@ type AddedPrecioCanalRow = {
   costo_extra: string;
   mutiple_canal: string;
 };
+type PrecioCanalRow = ExistingPrecioCanalRow | AddedPrecioCanalRow;
 
 const NUMERIC_COLUMNS: SortColumn[] = ['p1', 'p2', 'p3'];
 const API_BASE_URL = (import.meta.env.VITE_API_URL ?? '').trim().replace(/\/+$/, '');
@@ -58,7 +117,7 @@ const toSqlNumber = (value: string): string | null => {
 const escapeSqlString = (value: string) => value.replace(/'/g, "''");
 
 function App() {
-  const [promos, setPromos] = useState<any[]>([]);
+  const [promos, setPromos] = useState<PromoRow[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,17 +131,17 @@ function App() {
   const [detailsTitle, setDetailsTitle] = useState('');
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
-  const [detailsRows, setDetailsRows] = useState<any[]>([]);
+  const [detailsRows, setDetailsRows] = useState<ExistingModifierRow[]>([]);
   const [modExtraEdits, setModExtraEdits] = useState<Record<string, ModifierEditFields>>({});
   const [addedModifierRows, setAddedModifierRows] = useState<AddedModifierRow[]>([]);
   const [showPriceCanales, setShowPriceCanales] = useState(false);
   const [priceCanalesLoading, setPriceCanalesLoading] = useState(false);
   const [priceCanalesError, setPriceCanalesError] = useState<string | null>(null);
-  const [priceCanalesRows, setPriceCanalesRows] = useState<any[]>([]);
+  const [priceCanalesRows, setPriceCanalesRows] = useState<ExistingPrecioCanalRow[]>([]);
   const [priceCanalEdits, setPriceCanalEdits] = useState<Record<string, PrecioCanalEditFields>>({});
   const [addedPriceCanalesRows, setAddedPriceCanalesRows] = useState<AddedPrecioCanalRow[]>([]);
-  const [modificadorOptions, setModificadorOptions] = useState<any[]>([]);
-  const [productoOptions, setProductoOptions] = useState<any[]>([]);
+  const [modificadorOptions, setModificadorOptions] = useState<ModificadorOption[]>([]);
+  const [productoOptions, setProductoOptions] = useState<ProductoOption[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('Ajustes Promos');
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const deferredSearchTerm = useDeferredValue(searchTerm);
@@ -99,8 +158,8 @@ function App() {
     try {
       const response = await fetch(apiUrl(`/api/promos?t=${Date.now()}`));
       const data = await response.json();
-      setPromos(data);
-    } catch (err) {
+      setPromos(Array.isArray(data) ? (data as PromoRow[]) : []);
+    } catch {
       setError('Error de conexión con el servidor.');
     } finally {
       setLoading(false);
@@ -117,7 +176,7 @@ function App() {
   }, [promos, normalizedSearch]);
 
   const modifierDatalistOptions = useMemo(() => {
-    return modificadorOptions.flatMap((item: any, i: number) => {
+    return modificadorOptions.flatMap((item: ModificadorOption, i: number) => {
       const cod = String(item.codigo_tipo_modificador ?? '');
       const desc = String(item.descripcion_tipo_modificador ?? '');
       return [
@@ -128,7 +187,7 @@ function App() {
   }, [modificadorOptions]);
 
   const productDatalistOptions = useMemo(() => {
-    return productoOptions.flatMap((item: any, i: number) => {
+    return productoOptions.flatMap((item: ProductoOption, i: number) => {
       const cod = String(item.CODIGO_PRODUCTO ?? '');
       const desc = String(item.DESCRIPCION_CORTA_PRODUCTO ?? '');
       return [
@@ -175,7 +234,7 @@ function App() {
     return sortDirection === 'asc' ? 'ASC' : 'DESC';
   };
 
-  const getRowKey = (promo: any) => String(promo.cod ?? '');
+  const getRowKey = (promo: PromoRow) => String(promo.cod ?? '');
 
   const getEditedField = (rowKey: string, field: keyof EditedPriceFields) => {
     return editedPrices[rowKey]?.[field] ?? '';
@@ -194,7 +253,7 @@ function App() {
     }));
   };
 
-  const openModifiersModal = async (promo: any) => {
+  const openModifiersModal = async (promo: PromoRow) => {
     const cod = String(promo.cod ?? '').trim();
     if (!cod) return;
 
@@ -212,7 +271,7 @@ function App() {
         throw new Error('No se pudo obtener el detalle de modificadores.');
       }
       const data = await response.json();
-      setDetailsRows(Array.isArray(data) ? data : []);
+      setDetailsRows(Array.isArray(data) ? (data as ExistingModifierRow[]) : []);
     } catch {
       setDetailsError('No se pudo cargar la informacion de modificadores.');
     } finally {
@@ -286,10 +345,10 @@ function App() {
   const onNewModifierTipoChange = (clientId: string, value: string) => {
     const raw = value.trim();
     const foundByDesc = modificadorOptions.find(
-      (item: any) => String(item.descripcion_tipo_modificador ?? '').toLowerCase() === raw.toLowerCase()
+      (item: ModificadorOption) => String(item.descripcion_tipo_modificador ?? '').toLowerCase() === raw.toLowerCase()
     );
     const foundByCode = modificadorOptions.find(
-      (item: any) => String(item.codigo_tipo_modificador ?? '').toLowerCase() === raw.toLowerCase()
+      (item: ModificadorOption) => String(item.codigo_tipo_modificador ?? '').toLowerCase() === raw.toLowerCase()
     );
     const found = foundByDesc || foundByCode;
 
@@ -306,10 +365,10 @@ function App() {
   const onNewModifierProductoChange = (clientId: string, value: string) => {
     const raw = value.trim();
     const foundByCode = productoOptions.find(
-      (item: any) => String(item.CODIGO_PRODUCTO ?? '').toLowerCase() === raw.toLowerCase()
+      (item: ProductoOption) => String(item.CODIGO_PRODUCTO ?? '').toLowerCase() === raw.toLowerCase()
     );
     const foundByDesc = productoOptions.find(
-      (item: any) => String(item.DESCRIPCION_CORTA_PRODUCTO ?? '').toLowerCase() === raw.toLowerCase()
+      (item: ProductoOption) => String(item.DESCRIPCION_CORTA_PRODUCTO ?? '').toLowerCase() === raw.toLowerCase()
     );
     const found = foundByCode || foundByDesc;
 
@@ -384,8 +443,8 @@ function App() {
       const response = await fetch(apiUrl(`/api/catalogos/precio-canales?t=${Date.now()}`));
       if (!response.ok) return;
       const data = await response.json();
-      setModificadorOptions(Array.isArray(data.modificadores) ? data.modificadores : []);
-      setProductoOptions(Array.isArray(data.productos) ? data.productos : []);
+      setModificadorOptions(Array.isArray(data.modificadores) ? (data.modificadores as ModificadorOption[]) : []);
+      setProductoOptions(Array.isArray(data.productos) ? (data.productos as ProductoOption[]) : []);
     } catch {
       // Keep workflow resilient even if catalogs fail; manual typing still works.
     }
@@ -394,10 +453,10 @@ function App() {
   const onNewRowModificadorChange = (clientId: string, value: string) => {
     const raw = value.trim();
     const foundByDesc = modificadorOptions.find(
-      (item: any) => String(item.descripcion_tipo_modificador ?? '').toLowerCase() === raw.toLowerCase()
+      (item: ModificadorOption) => String(item.descripcion_tipo_modificador ?? '').toLowerCase() === raw.toLowerCase()
     );
     const foundByCode = modificadorOptions.find(
-      (item: any) => String(item.codigo_tipo_modificador ?? '').toLowerCase() === raw.toLowerCase()
+      (item: ModificadorOption) => String(item.codigo_tipo_modificador ?? '').toLowerCase() === raw.toLowerCase()
     );
     const found = foundByDesc || foundByCode;
 
@@ -408,10 +467,10 @@ function App() {
   const onNewRowProductoChange = (clientId: string, value: string) => {
     const raw = value.trim();
     const foundByCode = productoOptions.find(
-      (item: any) => String(item.CODIGO_PRODUCTO ?? '').toLowerCase() === raw.toLowerCase()
+      (item: ProductoOption) => String(item.CODIGO_PRODUCTO ?? '').toLowerCase() === raw.toLowerCase()
     );
     const foundByDesc = productoOptions.find(
-      (item: any) => String(item.DESCRIPCION_CORTA_PRODUCTO ?? '').toLowerCase() === raw.toLowerCase()
+      (item: ProductoOption) => String(item.DESCRIPCION_CORTA_PRODUCTO ?? '').toLowerCase() === raw.toLowerCase()
     );
     const found = foundByCode || foundByDesc;
 
@@ -441,7 +500,7 @@ function App() {
       const response = await fetch(apiUrl(`/api/precio-canales/${encodeURIComponent(detailsCode)}?t=${Date.now()}`));
       if (!response.ok) throw new Error('No se pudo obtener Precio Canales.');
       const data = await response.json();
-      setPriceCanalesRows(Array.isArray(data) ? data : []);
+      setPriceCanalesRows(Array.isArray(data) ? (data as ExistingPrecioCanalRow[]) : []);
     } catch {
       setPriceCanalesError('No se pudo cargar la informacion de Precio Canales.');
     } finally {
@@ -449,7 +508,7 @@ function App() {
     }
   };
 
-  const getPriceCanalKey = (row: any, index: number) => {
+  const getPriceCanalKey = (row: PrecioCanalRow, index: number) => {
     if (row.__isNew && row.__clientId) {
       return `new|${row.__clientId}`;
     }
@@ -464,12 +523,12 @@ function App() {
     ].join('|');
   };
 
-  const getPriceCanalEdit = (row: any, index: number) => {
+  const getPriceCanalEdit = (row: PrecioCanalRow, index: number) => {
     return priceCanalEdits[getPriceCanalKey(row, index)] ?? { precioVenta: '', costoExtra: '' };
   };
 
   const updatePriceCanalEdit = (
-    row: any,
+    row: PrecioCanalRow,
     index: number,
     field: keyof PrecioCanalEditFields,
     value: string
@@ -484,7 +543,7 @@ function App() {
     }));
   };
 
-  const buildPrecioCanalScript = (row: any, index: number): string | null => {
+  const buildPrecioCanalScript = (row: PrecioCanalRow, index: number): string | null => {
     const edit = getPriceCanalEdit(row, index);
     const newPrecioVenta = toSqlNumber(edit.precioVenta);
     const newCostoExtra = toSqlNumber(edit.costoExtra);
@@ -545,7 +604,7 @@ function App() {
     ].join('\n');
   };
 
-  const copyPrecioCanalScript = async (row: any, index: number) => {
+  const copyPrecioCanalScript = async (row: PrecioCanalRow, index: number) => {
     const script = buildPrecioCanalScript(row, index);
     if (!script) {
       showNotice('Ingresa un valor valido en N Precio_Venta o N Costo_Extra para generar script.');
@@ -584,7 +643,7 @@ function App() {
     }
   };
 
-  const getModifierKey = (row: any, index: number) => {
+  const getModifierKey = (row: ModifierRow, index: number) => {
     if (row.__isNew && row.__clientId) return `new|${row.__clientId}`;
 
     return [
@@ -597,15 +656,15 @@ function App() {
     ].join('|');
   };
 
-  const getModExtraValue = (row: any, index: number) => {
+  const getModExtraValue = (row: ModifierRow, index: number) => {
     return modExtraEdits[getModifierKey(row, index)]?.costoExtra ?? '';
   };
 
-  const getModEstadoValue = (row: any, index: number) => {
+  const getModEstadoValue = (row: ModifierRow, index: number) => {
     return modExtraEdits[getModifierKey(row, index)]?.est ?? '';
   };
 
-  const onModExtraChange = (row: any, index: number, value: string) => {
+  const onModExtraChange = (row: ModifierRow, index: number, value: string) => {
     const key = getModifierKey(row, index);
     setModExtraEdits(prev => ({
       ...prev,
@@ -616,7 +675,7 @@ function App() {
     }));
   };
 
-  const onModEstadoChange = (row: any, index: number, value: string) => {
+  const onModEstadoChange = (row: ModifierRow, index: number, value: string) => {
     const key = getModifierKey(row, index);
     setModExtraEdits(prev => ({
       ...prev,
@@ -627,7 +686,7 @@ function App() {
     }));
   };
 
-  const buildModifierExtraScript = (row: any, index: number): string | null => {
+  const buildModifierExtraScript = (row: ModifierRow, index: number): string | null => {
     if (row.__isNew) {
       const cod = escapeSqlString(String(detailsCode || row.cod_promo || '').trim());
       const tipoRaw = String(row.tipo_modificador ?? '').trim();
@@ -683,7 +742,7 @@ function App() {
     ].join('\n');
   };
 
-  const copyModifierExtraScript = async (row: any, index: number) => {
+  const copyModifierExtraScript = async (row: ModifierRow, index: number) => {
     const script = buildModifierExtraScript(row, index);
     if (!script) {
       showNotice('Ingresa un valor valido en N Costo_Extra o N Estado para generar el script.');
@@ -750,7 +809,7 @@ function App() {
     }
   };
 
-  const buildSqlScript = (promo: any, rowKey: string): string | null => {
+  const buildSqlScript = (promo: PromoRow, rowKey: string): string | null => {
     const cod = escapeSqlString(String(promo.cod ?? '').trim());
     if (!cod) return null;
 
@@ -786,7 +845,7 @@ function App() {
     ].join('\n');
   };
 
-  const copySqlScript = async (promo: any, rowKey: string) => {
+  const copySqlScript = async (promo: PromoRow, rowKey: string) => {
     const script = buildSqlScript(promo, rowKey);
 
     if (!script) {
@@ -982,12 +1041,12 @@ function App() {
                 {sortedPromos.map((p, i) => {
                   const rowKey = getRowKey(p);
                   const isS = (p.per || '').toString().trim().toUpperCase() === 'S';
-                  const pc = parseFloat(p.p1 || 0);
-                  const pl = p.p2 !== null ? parseFloat(p.p2) : null;
-                  const pa = p.p3 !== null ? parseFloat(p.p3) : null;
+                  const pc = Number(p.p1 ?? 0);
+                  const pl = p.p2 !== null && p.p2 !== undefined ? Number(p.p2) : null;
+                  const pa = p.p3 !== null && p.p3 !== undefined ? Number(p.p3) : null;
 
                   return (
-                    <tr key={p.cod + i} className="hover:bg-slate-50 transition-all">
+                    <tr key={`${String(p.cod ?? 'row')}-${i}`} className="hover:bg-slate-50 transition-all">
                       <td className="p-2.5 font-black text-slate-900">{p.cod}</td>
                       <td className="p-2.5 text-[10px] font-black text-indigo-500 uppercase">{p.cls}</td>
                       <td className="p-2 min-w-[120px] max-w-[170px] md:min-w-[150px] md:max-w-[200px] align-top">
@@ -1327,7 +1386,7 @@ function App() {
                       </table>
 
                       <datalist id="modificador-options">
-                        {modificadorOptions.map((item: any, i: number) => (
+                        {modificadorOptions.map((item: ModificadorOption, i: number) => (
                           <option
                             key={`${item.codigo_tipo_modificador ?? 'mod'}-${i}`}
                             value={String(item.descripcion_tipo_modificador ?? '')}
