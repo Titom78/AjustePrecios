@@ -1,73 +1,57 @@
-# React + TypeScript + Vite
+# Price Adjuster
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicacion React + API Node/Express para consultar y ajustar precios desde SQL Server.
 
-Currently, two official plugins are available:
+## Requisitos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Node.js 20+
+- Acceso a SQL Server
 
-## React Compiler
+## Configuracion
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Copia `.env.example` a `.env`.
+2. Completa credenciales y host de base de datos en `.env`.
 
-## Expanding the ESLint configuration
+Variables importantes:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- `DB_USER`, `DB_PASSWORD`, `DB_SERVER`, `DB_NAME`: obligatorias.
+- `PORT`, `HOST`: host/puerto del servidor API.
+- `CORS_ORIGIN`: opcional (ej. `https://tu-dominio.com`).
+- `VITE_API_URL`: opcional para frontend en dominio distinto.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Desarrollo
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
+node server.cjs
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- Frontend dev: `http://localhost:5173`
+- API dev: `http://127.0.0.1:3001`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Produccion
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. Construir frontend:
+
+```bash
+npm run build
 ```
+
+2. Levantar API:
+
+```bash
+npm start
+```
+
+3. Servir carpeta `dist/` con Nginx/Apache y enrutar `/api` al proceso Node.
+
+Ejemplo de idea en Nginx:
+
+- `root` apuntando a `dist`
+- `location /api` con `proxy_pass http://127.0.0.1:3001`
+
+## Seguridad
+
+- No subas `.env` al repositorio.
+- Si alguna credencial se subio previamente a GitHub, rotala inmediatamente.

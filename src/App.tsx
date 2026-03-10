@@ -39,6 +39,8 @@ type AddedPrecioCanalRow = {
 };
 
 const NUMERIC_COLUMNS: SortColumn[] = ['p1', 'p2', 'p3'];
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? '').trim().replace(/\/+$/, '');
+const apiUrl = (path: string) => `${API_BASE_URL}${path}`;
 
 const parseNumeric = (value: unknown): number | null => {
   if (value === null || value === undefined || value === '') return null;
@@ -95,7 +97,7 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/promos?t=${Date.now()}`);
+      const response = await fetch(apiUrl(`/api/promos?t=${Date.now()}`));
       const data = await response.json();
       setPromos(data);
     } catch (err) {
@@ -205,7 +207,7 @@ function App() {
     void ensurePrecioCanalesCatalogs();
 
     try {
-      const response = await fetch(`/api/modificadores/${encodeURIComponent(cod)}?t=${Date.now()}`);
+      const response = await fetch(apiUrl(`/api/modificadores/${encodeURIComponent(cod)}?t=${Date.now()}`));
       if (!response.ok) {
         throw new Error('No se pudo obtener el detalle de modificadores.');
       }
@@ -379,7 +381,7 @@ function App() {
     if (modificadorOptions.length > 0 && productoOptions.length > 0) return;
 
     try {
-      const response = await fetch(`/api/catalogos/precio-canales?t=${Date.now()}`);
+      const response = await fetch(apiUrl(`/api/catalogos/precio-canales?t=${Date.now()}`));
       if (!response.ok) return;
       const data = await response.json();
       setModificadorOptions(Array.isArray(data.modificadores) ? data.modificadores : []);
@@ -436,7 +438,7 @@ function App() {
     try {
       setPriceCanalesLoading(true);
       setPriceCanalesError(null);
-      const response = await fetch(`/api/precio-canales/${encodeURIComponent(detailsCode)}?t=${Date.now()}`);
+      const response = await fetch(apiUrl(`/api/precio-canales/${encodeURIComponent(detailsCode)}?t=${Date.now()}`));
       if (!response.ok) throw new Error('No se pudo obtener Precio Canales.');
       const data = await response.json();
       setPriceCanalesRows(Array.isArray(data) ? data : []);

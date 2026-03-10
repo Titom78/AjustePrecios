@@ -1,22 +1,37 @@
+require('dotenv').config();
 const express = require('express');
 const sql = require('mssql');
 const cors = require('cors');
 
 const app = express();
-app.use(cors());
+const corsOrigin = process.env.CORS_ORIGIN ? String(process.env.CORS_ORIGIN).trim() : '';
+app.use(cors(corsOrigin ? { origin: corsOrigin } : undefined));
 app.use(express.json());
 
+const requiredEnvVars = ['DB_USER', 'DB_PASSWORD', 'DB_SERVER', 'DB_NAME'];
+const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
+
+if (missingEnvVars.length > 0) {
+    console.error(`Faltan variables de entorno obligatorias: ${missingEnvVars.join(', ')}`);
+    process.exit(1);
+}
+
+const toBool = (value, fallback = false) => {
+    if (value === undefined || value === null || value === '') return fallback;
+    return String(value).toLowerCase() === 'true';
+};
+
 const config = {
-    user: 'bcp',
-    password: 'comidas1',
-    server: '172.31.13.24',
-    database: 'POSGC_DNS01',
-    port: 1433,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    server: process.env.DB_SERVER,
+    database: process.env.DB_NAME,
+    port: Number.parseInt(process.env.DB_PORT || '1433', 10),
     options: {
-        encrypt: false,
-        trustServerCertificate: true,
+        encrypt: toBool(process.env.DB_ENCRYPT, false),
+        trustServerCertificate: toBool(process.env.DB_TRUST_SERVER_CERTIFICATE, true),
         enableArithAbort: true,
-        connectTimeout: 30000
+        connectTimeout: Number.parseInt(process.env.DB_CONNECT_TIMEOUT || '30000', 10)
     }
 };
 
@@ -201,7 +216,9 @@ app.get('/api/catalogos/precio-canales', async (_req, res) => {
     }
 });
 
-const PORT = 3001;
-app.listen(PORT, '127.0.0.1', () => {
-    console.log(`Servidor API corriendo en puerto ${PORT}`);
+const PORT = Number.parseInt(process.env.PORT || '3001', 10);
+const HOST = process.env.HOST || '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+    console.log(`Servidor API corriendo en ${HOST}:${PORT}`);
 });
